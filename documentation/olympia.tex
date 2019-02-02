@@ -1,0 +1,715 @@
+\documentclass[pagesize=auto, titlepage=on]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{verbatim}
+\usepackage{polyglossia}
+\setdefaultlanguage{german}
+%\usepackage[ngerman]{babel}
+\usepackage[babel]{csquotes}
+\usepackage[style=authoryear]{biblatex}
+\addbibresource{Beispiel.bib}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{listings}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{%
+  \parbox{\textwidth}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}\vskip-4pt}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+%\lstset{basicstyle=\ttfamily\small, numbers=left,
+ % numberstyle=\scriptsize\color{black!70}\sffamily, 
+ % numbersep=3pt 
+%}
+\usepackage{color}
+\definecolor{gray}{rgb}{0.4,0.4,0.4}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.6}
+\definecolor{cyan}{rgb}{0.0,0.6,0.6}
+
+\lstset{
+basicstyle=\footnotesize,
+frame=single,,
+  columns=fullflexible,
+  showstringspaces=false,
+  commentstyle=\color{gray}\upshape,
+  keepspaces
+                 % Linienstaerke des Rahmens
+}
+
+\lstdefinelanguage{XML}
+{
+  morestring=[b]",
+  morestring=[s]{>}{<},
+  morecomment=[s]{<?}{?>},
+  stringstyle=\color{black},
+  identifierstyle=\color{darkblue},
+  keywordstyle=\color{cyan},
+  morekeywords={xmlns,version,type}% list your attributes here
+}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{positioning}
+\tikzset{
+  Entscheidung/.style={diamond, draw, fill=gray!40, text
+    width=2cm, align=center},
+  Element/.style={rectangle, draw, text width=2.5cm, align=center},
+  Nutzer/.style={ellipse, draw, minimum height=2em, text width=1.6cm,
+    align=center, text=white, fill=black!70} 
+}
+    
+
+\begin{document}
+\titlehead{Texttechnologie II \hfill Goethe-Universtität Frankfurt am Main}
+\subject{Olympia und Wikipedia}
+\author{Bronder Benjamin, Homburg Timo}
+\title{Olympia und Wikipedia}
+\subtitle{Analyse eines Korpus der Artikel zur Olympiade 2012}
+\publishers{}
+
+\maketitle
+
+\tableofcontents
+
+\section{Einleitung}
+\label{sec:einleitung}
+Dieses Dokument dient der Dokumentation der Aufgabe '' Olympia in der Wikipedia ''
+Auf den folgenden Seiten  erklären wir zunächst was sich hinter dem Titel verbirgt, welches Resultat wir erzielen wollen und warum.
+Danach werden wir sowohl abstrakt das Vorgehen beschreiben, das zu unserem Resultat führt, als auch einen Einblick in den Lösungsfindungsprozess geben. Anschließend werden wir unsere Implementierung im Detail beschreiben.
+Abschließend wollen wir die Resultate analysieren, das heißt eine Prüfung unseres Resultats auf seine Richtigkeit sowie in der Frage ob Resultat und Anfangsannahme zusammenpassen durchführen.
+
+
+\subsection{Problemstellung}
+\label{sec:problemstellung}
+In der Wikipedia finden sich viele verschiedene Artikel zum Thema Olympische Spiele 2012. Diese wurden von verschiedenen Benutzern, zu verschiedenen Zeitpunkten erstellt, sowie editiert und in unterschiedliche Kategorien eingeordnet. Die Darstellung der Revisionen in diesem Zeitraum zu Zwecken der Statistik, sowie die systematische Ausgabe der Attribute der betroffenen Artikel für weitere Analysen in einem automatisierten Prozess ist Aufgabe dieses Projektes. Weiterhin sollen Zusammenhänge zwischen bestimmten Artikeln als RDF Graph modelliert werden, um Sportler, Nationen und Sportarten in Beziehung zu setzen. Aufbauend auf den Beziehungen der Artikel können Rückschlüsse auf das Editierverhalten gezogen werden.
+
+\subsection{Motivation}
+\label{sec:motivation}
+Durch die Anwendung wird es möglich sein automatisiert auf die Artikel der Olympischen Spiele der Wikipedia zuzugreifen und die Korpusinformationen in einem vordefinierten Format zu extrahieren. Diese können für weitere Tests verwendet werden.
+Desweiteren stehen die Rohdaten für Statistiken der Revisionen der Artikel der Kategorie zur Verfügung um konkrete Ereignisse während der Olympischen Spiele in dem Datenverlauf anzuordnen.
+Durch einen Wechsel der URL und einiger weiterer Parameter, kann das Programm auch für andere Kategorisierungen verwendet werden und ist nicht nur auf die Kategorie Olympische Spiele begrenzt.
+Zuletzt kann eine Einordnung der verschiedenen Artikel im Korpus aufgrund gegebener Parameter vorgenommen werden.
+Im Rahmen dieser Ausarbeitung werden die Metadaten sowie Tabellen und Textinhalte der Artikel im Korpus herangezogen um um das Netzwerk der Beziehungen zwischen Sportlern, Sportarten ,Nationen und Medaillen zu erzeugen. Da dies in Form einer RDF-Datei geschieht ist das Resultat auch für andere Applikationen weiter zu nutzen.
+
+\section{Lösungsweg}
+\label{sec:ansatz}
+
+\subsection{Ausgangslage}
+\label{sec:ausgangslage}
+Als Ausgangslage des Projektes fanden wir die API der Wikipedia vor. Diese bot uns verschiedene Anfragearten, die uns bei der Programmierung von Nutzen waren. Weiterhin wurde die Möglichkeit der Benutzung der Wikipedia XML Dumps für ergänzende Informationen zur Verfügung gestellt. Grafiken, die zur Visualisierung der Ergebnisse dienen, sollten mithilfe von Matlab erstellt werden. Der Export der Ergebnisse sollte, die Zusammenhangsgraphen betreffend, im Resource Description Format (RDF) erfolgen. Weitere Exports sollten als durch Tabs separierte Textdateien erfolgen.
+Die Anforderungen an das Programm beinhalteten die automatische Beschaffung der notwendigen Daten, sowie die bereits beschriebene geforderte Funktionalität.
+
+\subsection{Vorgehensweise}
+Begonnen haben wir mit der vorgeschlagenen Kategorie Olympische Sommerspiele 2012 als Hauptbezugspunkt.
+Um den Umfang des Korpus auf den direkten bis mittelbaren Kontext zu beschränken wählten wir die Artikel, die direkt zu der Kategorie gehören sowie jene die zu einer Subkategorie gehören und auf die Hauptkategorie zurückzuführen sind.
+Mithilfe der Wikipedia API erhielten wir so die Liste der gewünschten Titel, die wir rekursiv abarbeiten konnten um den Korpus aus ''Seitenobjekten'' zu erstellen, die die Metadaten enthalten.
+Herausstechende Peaks im resultierenden Plot haben wir zusätzlich auf zeitgleiche Ereignisse überprüft die mit der Olympiade in Verbindung stehen.
+\paragraph{}
+Da der interessante Punkt dieser Untersuchung die Aktivität bezüglich des Hauptthemas ist, und nicht die der einzigen Seiten, bot es sich an eine Map anzulegen, die für die Tage beim Einlesen der Revisionensdaten mitzählt.
+Diese Map enthielt ursprünglich die genauen Datumsangaben. Da sich diese jedoch nicht ohne weiteres in einer gut lesbaren Form in  Matlab plotten ließen stiegen wir auf ''Tag x nach ersten Wikipedia Eintrag im Corpus'' um.
+\paragraph{}
+Zum Schluss sollten noch Sportler, Sportarten und Nationen aus dem Korpus gefiltert, ihre Verknüpfungen rekonstruiert und als Zusammenhangsgraph im RDF Format gespeichert werden.
+Dabei stellte sich der mangelnde Umfang der Artikel in der deutschsprachigen Wikipedia als größtes Hindernis heraus.
+Der überwiegende Teil der Sportler, die nicht für Deutschland teilnahmen, haben keine eigene Seite in der deutschsprachigen Wikipedia.
+Sie wären folglich nur als Dummy-links in anderen Seiten zu finden, was ein sicheres zuweisen als Sportler (oder gar Person) unmöglich gemacht hätte.
+Aus diesem Grund sind wir auf die englischsprachige Wikipedia umgestiegen.
+\subsubsection{Entitäten}
+Die Nationen lassen sich aus der Liste der teilnehmenden Nationen ermitteln.
+Die Sportarten aus der Liste der Disziplinen/Events. 
+Da die einzige gemeinsame Kategorie aller Sportler ''Category:Living People'' ist erstellten wir eine Vorsortierung potentieller Teilnehmer in welcher wir die ungewollten Einträge (z.B.Mick Jagger) dadurch abfangen, das wir überprüfen ob eine ihrer Kategorien '' at 2012 Summer Olympics'' enthält.
+\paragraph{}
+Ein Fehler der dabei aufgefallen ist, sich aber nicht automatisch verhindern lässt, sind nicht einheitliche Wikipedia Kategorien.
+Beispielsweise wird Beachvolleyball offiziell als Unterart des Volleyballs geführt und ist somit in der Eventliste keine eigenständige Kategorie.
+Allerdings hat keiner der Beachvolleyball-Spieler ''Volleyball'' in irgendeiner Form als zugeordnete Kategorie.
+Da wir das Programm aber möglichst robust und einfach übertragbar halten wollten, entschieden wir uns dagegen Fehler manuell abzufangen, die auch falsch in der Wikipedia stehen. Diese Listen werden zur Veranschaulichung auch separat ausgegeben.
+\subsubsection{Relationen}
+Wenn sich alle Seiten an die Vorlage halten, enthält jede Seite zu einem potentiellen Sportler eine relative kurze Liste von Links von denen einer zu seiner Nation führt. 
+Als ersten Ansatz um doppelte Staatsbürgerschaften und Auswanderer abzufangen prüften wir ob der Sportler einen Link zu einer Nation hat noch ob sie einen Backlink von einer ''Olympiateilnehmer  von (Nation)  2012'' Liste enthalten.  
+Da leider ein signifikanter Teil der Sportlerseiten keinen Link zu einer Nation enthält, prüften wir stattdessen ''nur'' ob es einen Backlink von einer   '' Nation at the 2012 Summer Olympics'' Seite gibt wenn der erste Vergleich kein Ergebnis liefert.
+
+Um die Anzahl der Sportler deren Nation ''Unbekannt'' ist zu reduzieren gehen folglich das Risiko ein mehr false positivs zu erhalten.
+Denn auch wenn es unwahrscheinlich ist, so ist es nicht ganz auszuschließen das ein Sportler von von einer  '' Nation at the 2012 Summer Olympics'' Page verlinkt wird für die er nicht angetreten ist.
+
+\paragraph{}
+Die Sportler hingegen sind (bis auf die Beach-Volleyballer) ordentlich Katalogisiert. So sind z.B. alle teilnehmenden Fechter unter ''Fencers at the 2012 Summer Olympics'' zu finden, 
+was eine gewisse Ähnlichkeit zur Veranstaltung ''Fencing at the 2012 Summer Olympics'' aufweist.
+Folglich lässt sich das Relationstripel ''Sportler betreibt/tritt-an Sport'' einfach ermitteln.
+\paragraph{}
+Wenn wir wissen, das ein Sportler für eine Nation teilgenommen hat und in welcher Sportart, dann lässt sich zwischen Nation und Sportart auch eine direkte Kante eintragen.
+
+
+\paragraph{}
+Die Medaillenspiegel sind leider nicht aus den Metadaten zu entnehmen und bei weitem nicht einheitlich aufgebaut.
+Um sie zu extrahieren waren einige Extraschritte notwendig die, da in der Wikipedia nicht mit wohlgeformten Content zu rechnen ist, wir lediglich für die Sportarten/Events Seiten anwenden.
+
+Zu diesem Zweck haben wir einen DefaultHTTP Client erstellt und mit diesem einen HTTPGet Request auf den Seiten URLs ausgeführt.
+Danach haben wir die Ersetzungen auf dem HTML Text durchgeführt um es XMLKonformität zu erreichen und anschließend 
+mit einem StringReader über einen InputStream die Infos dem SAXParser übergeben, um mit diesem die Medailleninformationen zu parsen.
+\paragraph{}
+Aus der Liste der Sportler und der Information das jemand mit dem Namen Gold/Silber/Bronze gewonnen hat, lassen sich die Sportler/Medaillen Relationen anlegen.
+Aus dieser Relation und der Relation zwischen Sportler und Relation lässt sich schließlich auch die Verbindung zwischen Nationen und Medaillen knüpfen.
+\subsubsection  {RDF Export}
+Abschließend haben wir all diese Relationen genommen und als  RDF-XML gespeichert.
+
+
+
+\clearpage
+\begin{figure}[tb]
+  \centering
+  \begin{tikzpicture}[font=\footnotesize]
+    % Positioniere Knoten:
+    \node [Element] (init) {Wikipedia};
+    \node [Element, below=of init] (api) {API};
+    \node [Element, right=of api] (parser) {STAX};
+    \node [Element, right=of parser] (title) {Titel aller Olympia Artikel};
+    \node [Element, below=of parser] (corpus) {Corpus};
+    \node [Element, above=of parser] (request) {request};
+    \node [Element, right=of corpus] (time) {Hashmap der Aktivitätszeitlinie};
+    \node [Element, below=of corpus] (artikel) {Artikel Objekte};
+    \node [Entscheidung, below=of artikel] (lo) {Living Person?};
+    \node [Entscheidung, below=of lo] (check) {Teil einer at the 2012 olympics Kategorie?};
+    \node [Entscheidung, right=of lo] (art) {In der Liste der olympischen Events?};
+    \node [Entscheidung, right=of art] (nation) {In der Liste der teilnehmen Nationen?};
+    \node [Element, below=of check] (sportsman) {sportsman};
+    \node [Element, below=of nation] (nations) {nations};
+    \node [Element, below=of art] (sport) {sport};
+%    \node [Entscheidung, below=of sportsman] (natlink) {link zu einer nation?};
+    \node [Entscheidung, below=of sportsman] (bl) {Backlink von der Teilnehmerliste der Nation?};
+    \node [Entscheidung, right=of sportsman] (match) {match boxing / boxer usw };
+    \node [Element, below=of match] (man2art) {Sportler/Sportart Relation};
+    \node [Element, below=of bl] (man2nation) {Sportler/Nation Relation};
+    \node [Element, below=of man2art] (art2nation) {Sportart/Nation Relation};
+
+    \node [Element, below=of api] (http) {HTML (un)escapeer };
+    \node [Element, below=of http] (sax) {SAX};
+    \node [Element, below=of sax] (table) {Medaillentabellen};
+    \node [Element, left=of sportsman] (man2medal) {Sportler/Medaillen Relation};
+    \node [Element,below=of man2medal] (nation2medal) {Nation/Medaillen Relation};
+
+    % Zeichne Kanten:
+    \begin{scope}[->, >=stealth]
+      \draw (init) -- (api);
+      \draw (api) -- (parser);
+      \draw (parser) -- (title);
+      \draw (title) |- (request);
+      \draw (request) -- (api);
+      \draw (parser) -- (corpus);
+      \draw [dashed](title) -- (corpus);
+      \draw (corpus) -- (time);
+      \draw (corpus) -- (artikel);
+      \draw (artikel) -- (lo);
+      \draw (lo) -- node [near start, left] {yes} (check);
+      \draw (lo) -- node [near start, right] {no} (art);
+      \draw (art) -- node [near start, right] {no} (nation);
+      \draw (check) -- node [near start, below] {yes} (sportsman);
+      \draw (nation) -- node [near start, below] {yes} (nations);
+      \draw (art) -- node [near start, below] {yes} (sport);
+      \draw (sportsman) -- (bl);
+      \draw (sportsman) -- (match);
+      \draw (sport) -- (match);
+      \draw (match) -- node [near start, above] {match} (man2art);
+      \draw (man2art) -- (art2nation);
+      \draw (bl) -- node [near start,below] {yes} (man2nation);
+      \draw (man2nation) -- (art2nation);
+      \draw (nations) |- (man2nation);
+
+    \draw (api) -- (http);
+    \draw (http) -- (sax);
+    \draw (sax) -- (table);
+    \draw (table) -- (man2medal);
+    \draw (sportsman) -- (man2medal);
+    \draw (man2medal) -- (nation2medal);
+    \draw (man2nation) -| (nation2medal);
+  \draw [dashed](sport) -- node[near start,below]{get Medals}(api);
+    \end{scope}
+  \end{tikzpicture}
+  \caption{Flussdiagramm des Lösungsansatzes}
+  \label{fig:flowchart}
+\end{figure}
+
+\clearpage
+
+\section{Implementierung}
+\label{sec:Implementierung}
+\subsection{Architektur}
+Die Architektur des Programms lässt sich in verschiedene Funktionseinheiten aufteilen:
+\begin{itemize}
+\item Ermitteln der relevanten Kategorien
+\item Erstellen des Korpus der relevanten Artikel und Ermittlung der Entitäten
+\item Export des Korpus
+\item Analyse der Revisionsinformationen und Export der relevanten Revisionsdaten
+\item Herstellung von Beziehungen zwischen den Entitäten
+\item Export der Beziehungen im RDF-Format
+\end{itemize}
+Das folgende Klassendiagramm soll eine Übersicht über die Beziehungen der nachfolgend beschriebenen Klassen bieten:
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=1.0\textwidth]{images/classes.png}
+   \caption[Klassendiagramm]{Klassendiagramm}
+   \label{fig:nag_conf}
+\end{figure}
+\clearpage
+\subsubsection{Erstellung des Korpus}
+Für das Ermitteln der für den Korpus relevanten Kategorien wurde von der Basiskategorie ''2012 Summer Olympics'' ausgehend eine Analyse der Unterkategorien durchgeführt. Durch eine rekursive Weiterführung dieses Prozesses wurden sämtliche Kategorien die in irgendeiner Form mit den Olympischen Spielen in Verbindung standen extrahiert. Die genutzten URLs der Wikipedia API und weitere häufig verwendete Strings wurden in den zugehörigen Interfaces zur einfachen Konfiguration und Wiederverwendung zwischengespeichert. Beispiele für verwendete API Aufrufe finden sich hier:\begin{lstlisting}[language=XML]
+http://en.wikipedia.org/w/api.php?action=query&list=categorymembers
+&cmtitle=Category:2012_Summer_Olympics&format=xml 
+<!-- Kategorie API Aufruf -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics&format=xml 
+<!-- Page Parse API Aufruf -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics
+&prop=categories&format=xml 
+<!-- Kategorien der Seite -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics
+#&prop=links&format=xml 
+<!-- Links der Seite -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics
+&bllimit=max&list=backlinks
+&bltitle=American_Samoa_at_the_2012_Summer_Olympics&format=xml
+<!-- Backlinks der Seite -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics
+&rvlimit=max&prop=revisions&rvprop=timestamp|user
+<!-- Revisionen der Seite -->
+http://en.wikipedia.org/w/api.php?action=query
+&titles=American_Samoa_at_the_2012_Summer_Olympics
+&format=xml&rvcontinue=.....
+<!-- Continue Strings (Bsp. fuer Revisionen, auch fuer Backlinks, Links und Kategorien benutzt)-->
+\end{lstlisting}
+Für die in der letzten URL erwähnten Continuestrings war es nötig je eine Methode rekursiv aufzurufen um diese abzuarbeiten. Ein Beispiel bezüglich des Auslesens von Kategorien findet sich hier:
+\begin{lstlisting}[language=Java]public void readCat(final String continueStr) {
+	String cmcontinue = "";
+	//Lese Kategorieinformationen u.a. auch den Rekursionsparameter aus
+	........
+	//Fuehre die Rekursion aus um weitere Kategorien zu lesen
+		if (!"".equals(cmcontinue))
+			this.readCat(cmcontinue);
+}\end{lstlisting}
+\clearpage
+Ausgehend von den Kategorien konnte als nächstes der Korpus erstellt werden.
+Für die Speicherung des Korpus wurde ein Objekt namens ''Artikel'' erstellt:
+\begin{lstlisting}[language=Java]class Artikel{
+	/**Unique page id of the Wikipedia article.*/
+    private Integer pageID;
+    /**List of timestamps of the revisions of the article.*/
+    private final List<Date> timestamps;
+    /**List of categories of the article.*/
+    private final Set<String> categories;
+    /**List of links included in the article.*/
+    private final Set<String> links;
+    /**List of links included in the article.*/
+    private final Set<String> backlinks;
+    /**Amount of subarticles of this article.*/
+    private transient Integer subarticles;
+    /**Title of the article.*/
+    private String title;
+}
+\end{lstlisting}
+Dieses enthielt neben dem Titel der Seite, den Kategorien und der PageID auch die Links und Backlinks der jeweiligen Seite, die zur Herstellung von Beziehungen der Entitäten hilfreich sind. Die Timestamps der Revisionen des jeweiligen Artikels wurden bei dieser Gelegenheit ebenso aufgenommen.\\
+Die Erstellung der Artikel wurde aufgrund des sehr langen Rechenprozesses sowie des sehr häufigen Internetzugriffs in mehrere Threads ausgelagert. Die Klasse CorpusThread repräsentiert diesen Thread und wird über die createCorpus() Methode in der Klasse Olympia aufgerufen. Die Funktionialität von CorpusThread teilt sich unterdessen in Funktionen zum Lesen von Revisionen, Links, Backlinks, Kategorien und den allgemeinen Seiteninformationen auf.\\
+Grund hierfür ist der beschränkte Zugriff als freier Nutzer auf die WikipediaAPI. Gibt es als Seiteninformationen lediglich einen Titel, eine PageID und die Anzahl der Subartikel zu berücksichtigen, so stellen die anderen zu parsenden Daten potenziell sehr lange Listen dar. Das Abfragen dieser Listen kann als unregistrierter Benutzer der Wikipedia wie im unten anhand von Links gezeigten Beispiel nur in 10er Schritten erfolgen:
+\begin{lstlisting}[language=XML]<api>
+  <query>
+  <normalized>
+     <n from="Germany_at_the_2012_Summer_Olympics" 
+        to="Germany at the 2012 Summer Olympics"/>
+  </normalized>
+  <pages><page pageid="28580455" ns="0" title="Germany at the 2012 Summer Olympics">
+    <links><pl ns="0" title="2012 Summer Olympics"/>
+    	   <pl ns="0" title="2012 Summer Olympics medal table"/>
+           <pl ns="0" title="ASSECO Resovia Rzeszow"/><pl ns="0" title="Abdelhafid Benchabla"/>
+           <pl ns="0" title="Adam Okruashvili"/><pl ns="0" title="Adam Skrodzki"/>
+           <pl ns="0" title="Adelheid Morath"/><pl ns="0" title="Adrian Crisan"/>
+           <pl ns="0" title="Afghanistan at the 2012 Summer Olympics"/>
+           <pl ns="0" title="Agnieszka Radwanska"/>
+    </links>
+    </page>
+  </pages>
+  </query>
+  <query-continue>
+    <links plcontinue="28580455|0|Alaaeldin_Abouelkassem"/>
+  </query-continue>
+</api>\end{lstlisting}
+Aufgrunddessen wurde ein rekursiver Aufruf dieser Funktionen nötig, welcher den Continue Links (hier plcontinue) folgt und somit alle benötigten Daten erfassen kann.
+Nach erfolgreicher Erstellung des Korpus, sollte dieser exportiert werden:\\
+Für den Korpusexport wurde auf einen FileWriter zurückgegegriffen, welcher die von Object überschriebene toString() Methode des Artikelobjekts für die Ausgabe verwendet. Der Export des Korpus enthält die folgenden Elemente:
+\begin{lstlisting}[language=XML]
+ID              Title         Timestamps   Categories                    Subarticles         Links
+36665005     Rachel Bragg    4         [Category:Living people....]   0                   [Volleyball....]
+\end{lstlisting}
+Timestamps weist hier die Gesamtanzahl alle Bearbeitungen des Artikels auf, die jemals vorgenommen wurden.
+\subsubsection{Ausgabe der Revisionen}
+Durch den Aufbau des Korpus wurden uns die Bearbeitungsdaten (Timestamps) der Artikel geliefert. Diese mussten zum Export in einen zeitlichen Zusammenhang gestellt werden. Zu diesem Zwecke wurde eine Map von Datum auf Bearbeitungen für jeweils alle Artikel im Korpus erstellt. Bei dem Einleseprozess der Revisionen wurden die Bearbeitungseinträge des aktuellen Datums erhöht.
+Die Map stellte somit die Bearbeitungen aller Artikel im Zusammenhang der Olympischen Spiele nach Datum sortiert dar. Für die korrekte Darstellung der Daten in Matlab wurden auch die Tage an denen keine Bearbeitungen im Zeitintervall stattfanden mit 0 in die Map aufgenommen.
+\begin{lstlisting}[language=Java]Date currentdate=this.startdate;
+while(currentdate.before(this.enddate)){
+     currentdate.setTime(currentdate.getTime()+Olympia.SECONDSOFDAY);
+     if(!this.getRevisions().containsKey(this.matlabdateformat.format(currentdate))){
+        this.getRevisions().put(this.matlabdateformat.format(currentdate),0);
+     }
+}\end{lstlisting}
+Die Ausgabe der Revisionen erfolgte in 2 Txt-Dateien, von denen die erste, die Keys der Map (Tag 0-X) und die zweite die Values der Map, d.h. die Bearbeitungen an diesem Tag darstellt. Nach Import der beiden Vektoren in Matlab, kann ein Vergleich durch Plotten erfolgen.
+\subsubsection{Implementierung der Relationen}
+Um den RDF-Graphen zu exportieren, mussten nun die Entitäten der Dokumente identifiziert und Beziehungen zwischen ihnen hergestellt werden. Dafür wurde nach dem im vorherigen Kapitel beschriebenen Schema vorgegangen.
+Die benötigten Beziehungen wurden als Maps in der Klasse RDFData abgebildet.
+\begin{lstlisting}[language=Java]
+public class RDFData implements RDFDataAPI{
+	private final transient Map<String,Artikel> sport;
+	/**Map of sports with their participating nations.*/
+	private final transient Map<String,Set<String>> sportToNation;
+	/**Map of sports with their participants.*/
+	private final transient Map<String,Set<String>> sportToSportsmen;
+	/**Map of sportsmen who have achieved gold medals including the amount.*/
+	private final transient Map<String,Integer> sportsmenToGold;
+	........
+}\end{lstlisting}
+Für den geforderten Export der Nationen, Sportler und Sportarten wurden bereits bei der Korpuserstellung nach o.g. Kriterien Maps der Entitäten auf die entsprechenden Artikel angefertigt.
+Anhand dieser Basisinformationen wurden die Beziehungen ermittelt:
+Die Methode createRelationships implementiert die Vorgehensweise:
+\begin{lstlisting}[language=Java]
+for(Artikel sportsman:this.sportsmen.values()){
+//Fuer alle Artikel
+	        boolean unknown =true;
+	        for(String link:sportsman.getLinks()){
+//Pruefe Links	        	
+	        	for(String nation:this.nations.keySet()){
+	        		if(link.equals(nation) 
+	        	&& sportsman.getBacklinks().contains(nation+RDFData.SUMMEROLYMPICS)){
+		               //Fuege in die Relation Nation zu Sportler/Sportler zu Nation ein
+	        		}
+	        	}
+	        }
+	        if(unknown){  //Wenn wir noch keine Nation gefunden haben
+	        	for(String backlink:sportsman.getBacklinks()){
+	        		for(String nation:this.nations.keySet()){
+	        			if(backlink.equals(nation+" at the 2012 Summer Olympics")){
+	        				//Fuege in die Relation Nation zu Sportler hinzu
+	        			}
+	        		}
+	        	}
+	        }
+	        if (unknown){
+	            //Ordne die Nation Unknown zu
+	        }
+	        for(String category:sportsman.getCategories()){
+	            for(String sport:this.sport.keySet()){
+	                if(sport.substring(0,3).equals(category.substring(9,12))){
+	       //Fuege Sportler zur Sportart hinzu wenn die ersten 
+	       //3 Buchstaben der Sportart/Category matchen
+	                }
+	            }
+	        }
+\end{lstlisting}
+Die Relationen Sportler zu Sport und Sport zu Sportler können sich aus den nun ermittelten Relationen errechnen.
+\subsubsection{Medaillen}
+Die Medaillen wurden von den Übersichtsseiten der Sportarten extrahiert und nach einigen Anpassungen mit einem SAXParser geparst. Der DefaultHandler zum Parsen wurde in der Klasse MedalHandler implementiert.
+Die wichtigsten Funktionen der Klasse bestehen aus:
+\begin{enumerate}
+\item Auffinden der Tabellenstrukturen der Medaillen über das Keyword ''Event''
+\item Abgrenzung anderer ''Event'' Tabellen ohne Medaillen
+\item Indentifikation der Sportler und deren Medaillen
+\item Zuordnung der Sportler zu den Medaillen in der Datenstruktur
+\end{enumerate}
+Die Tabellen der Medaillen sind in Wikipedia übersichtlich auf den Seiten der Sportarten aufgelistet. Allerdings haben die Tabellen bis auf die Titelspalten ''Event'',''Gold'',''Silver'', ''Bronze'' kein einheitliches Format. So kann es beispielsweise vorkommen, dass sich die Spalte Gold in zwei Unterspalten mit dem Sportler und der Rekordzeit aufspaltet. Um dennoch die Sportlernamen extrahieren zu können, wurde die Spaltenanzahl der ersten Tabellenzeile bestimmt und einheitlich aufgeteilt.\\
+Anschließend wird jeder geparste String in den identifizierten Tabellen mit der Sportlerliste abgeglichen. Wird ein Sportler identifiziert, so wird er in die entsprechende Medaillenrelation eingefügt.
+\begin{lstlisting}[language=Java]
+public void addData(String chars){
+	    if(!chars.contains("(") && !chars.contains("\n") && !"".equals(chars) && !" ".equals(chars) && !chars.matches("[0-9]+")){
+	        System.out.println("Sportsman or Nation: "+chars);
+	        if(this.rdf.getSportsmen().containsKey(chars)){
+	            this.rdf.addSportsmanToMedal(chars, this.medalcounter);
+	        }
+	        }
+}
+\end{lstlisting}
+\subsubsection{RDF-Format}
+Aus den ermittelten Daten wird das im vorherigen Kapitel definierte RDF-Format mit der Funktion rdfExport
+Das RDF-Format ist nach dem folgenden Schema aufgebaut:
+\begin{comment}\begin{lstlisting}[language=XML]
+<!ELEMENT rdf:Description ( tt:bronze | tt:competing | tt:gold | tt:isrepresented | tt:nation | tt:participates | tt:represents | tt:silver | tt:sportsman )* >
+<!ATTLIST rdf:Description rdf:about CDATA #REQUIRED >
+
+<!ELEMENT rdf:RDF ( rdf:Description+ ) >
+<!ATTLIST rdf:RDF xmlns:rdf CDATA #REQUIRED >
+<!ATTLIST rdf:RDF xmlns:tt CDATA #REQUIRED >
+
+<!ELEMENT tt:bronze ( #PCDATA ) >
+<!ATTLIST tt:bronze rdf:about CDATA #REQUIRED >
+
+<!ELEMENT tt:competing ( rdf:Description* ) >
+<!ATTLIST tt:competing rdf:parseType NMTOKEN #FIXED "Collection" >
+
+<!ELEMENT tt:gold ( #PCDATA ) >
+<!ATTLIST tt:gold rdf:about CDATA #REQUIRED >
+
+<!ELEMENT tt:isrepresented ( rdf:Description+ ) >
+<!ATTLIST tt:isrepresented rdf:parseType NMTOKEN #FIXED "Collection" >
+
+<!ELEMENT tt:nation ( rdf:Description+ ) >
+<!ATTLIST tt:nation rdf:parseType NMTOKEN #FIXED "Collection" >
+
+<!ELEMENT tt:participates ( rdf:Description+ ) >
+<!ATTLIST tt:participates rdf:parseType NMTOKEN #FIXED "Collection" >
+
+<!ELEMENT tt:represents EMPTY >
+<!ATTLIST tt:represents rdf:about CDATA #REQUIRED >
+
+<!ELEMENT tt:silver ( #PCDATA ) >
+<!ATTLIST tt:silver rdf:about CDATA #REQUIRED >
+
+<!ELEMENT tt:sportsman ( rdf:Description+ ) >
+<!ATTLIST tt:sportsman rdf:parseType NMTOKEN #FIXED "Collection" >
+\end{lstlisting}\end{comment}
+\begin{lstlisting}[language=XML]
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Datei XSDTest.xsd -->
+<xsd:schema
+xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<xsd:complexType name="nation">                         <!-- Nation Type Definition -->
+<xsd:element name="tt:isrepresented" type="nationsportsmenlist"> <!-- Sportsmen of Nation -->
+<xsd:complexType name="nationsportsmenlist">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:complexType>
+</xsd:element>
+<xsd:element name="tt:participates" type="xsd:string">  <!-- Sports of Nation -->
+<xsd:complexType>
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:complexType>
+</xsd:element>
+</xsd:complexType>
+<xsd:complexType name="sportsman">                      <!-- Sportsman Type Definition -->
+<xsd:element name="tt:competing" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">      <!-- Sports of Sportsmen -->
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+<xsd:element name="tt:nation" type="xsd:string"/>
+<xsd:element name="tt:gold" type="xsd:nonNegativeInteger"/> 
+<xsd:element name="tt:silver" type="xsd:nonNegativeInteger"/>
+<xsd:element name="tt:bronze" type="xsd:nonNegativeInteger"/>
+</xsd:complexType>
+<xsd:complexType name="sport">                          <!-- Sport Type Definition -->
+<xsd:element name="tt:nation" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">      <!-- Nation of Sport -->
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+<xsd:element name="tt:sportsman" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">      <!-- Sportmen of Sport -->
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+</xsd:complexType>
+<xsd:complexType name="bronze">                          <!-- Bronze Medals Definition -->
+<xsd:element name="tt:sportsman" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+</xsd:complexType>
+<xsd:complexType name="gold">                          <!-- Gold Medals Definition -->
+<xsd:element name="tt:sportsman" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+</xsd:complexType>
+<xsd:complexType name="silver">                          <!-- Silver Medals Definition -->
+<xsd:element name="tt:sportsman" type="xsd:string">
+<xsd:sequence minOccurs="0" maxOccurs="unbounded">
+<xsd:element name="rdf:Description" type="xsd:string">
+<xsd:attribute name="rdf:about" type="xsd:string"/>
+</xsd:element>
+</xsd:sequence>
+</xsd:element>
+</xsd:complexType>
+<xsd:element name="rdf:RDF" type="xsd:string">
+<xsd:element name="rdf:Description" type="nation"/>     <!-- M Nationen -->
+<xsd:element name="rdf:Description" type="sportsman"/>  <!-- N Sportler -->
+<xsd:element name="rdf:Description" type="sport"/>      <!-- O Sportarten -->
+<xsd:element name="rdf:Description" type="bronze"/>     <!-- B Bronzemedaillengewinner -->
+<xsd:element name="rdf:Description" type="gold"/>       <!-- G Goldmedaillengewinner -->
+<xsd:element name="rdf:Description" type="silver"/>     <!-- S Silbermedaillengewinner -->
+</xsd:element>
+</xsd:schema>
+\end{lstlisting}
+Dieses Schema soll nur als Veranschaulichung verstanden werden. Es ist produktiv nicht einsatzfähig oder getestet worden. Dennoch zeigt es die Eigenschaften des Exportformates recht gut.
+Der Export bildet die in RDFData gegebenen Relationen wie weiter oben beschrieben ab. Die Beziehungen bleiben dabei gewahrt und werden in RDF überführt.
+\subsection{Dokumentation}
+\label{sec:Quelltextdokumentation}
+Für die Dokumentation der Quelltexte wurde JavaDoc verwendet. Das generierte Javadoc finden Sie in den Projektdateien\footnote{\href{run:/doc/index.html}{doc/index.html}}. Es wurden sämtliche Methoden, Klassen, Interfaces und Attribute, sowie Konstanten der Klassen dokumentiert und sofern als notwendig erachtet weiter Kommentare an ausgewählten Stellen der Methoden ergänzt.
+\subsection{Anwenderdokumentation}
+\label{sec:anwenderdokumentation}
+Die Anwendung ist in Java geschrieben und erfordert zur Ausführung eine Java Virtual Machine 1.6 oder höher.
+Zur Installation muss lediglich das JAR-File kopiert und mit dem Befehl
+\begin{lstlisting}[language=Java]
+java -jar Olympia.jar 16 01-02-2004 01-07-2012 //Threads + Start/Enddatum 
+java -jar Olympia.jar 01-02-2004 01-07-2012    //Start/Enddatum 
+java -jar Olympia.jar 16                       //Threads
+java -jar Olympia.jar
+\end{lstlisting}
+ausgeführt werden.\\
+Hierbei kann über Parameter das Start- und Enddatum für die Auswertung sowie die Anzahl der Threads zur parallelen Bearbeitung der Seiten angewählt werden. Werden keine Parameter angegeben, arbeitet das Programm mit 2 Threads und ermittelt das Datum des ersten Artikels von Olympia 2012 und das Datum des letzten Artikels als Parameter.  
+Weiterhin wird für die Ausführung des Programmes, speziell mit Erhöhung der Threads eine gute Internetverbindung empfohlen.
+%\clearpage
+\subsubsection{Ergebnisse}
+Nach Ende der Ausführung des Programmes finden sich die Ergebnisdateien im Unterverzeichnis ''out'' des Programmes. Sie beinhalten:
+\begin{itemize}
+\item korpus.txt - Die exportierte Version des Korpus
+\item matlab1.txt - Die Range der Revisionstage
+\item matlab2.txt - Die Editierungen an den jeweiligen Revisionstagen
+\item nation.txt - Die Liste der Nationen
+\item rdfExport.rdf - Der Export der RDF-Relationen
+\item sport.txt - Die Liste der Sportarten
+\item sportsmen.txt - Die Liste der Sportler
+\end{itemize}
+Hierbei kann die RDF-Datei beispielsweise in einem RDF-Visualisierer wie Gravity\footnote{http://semweb.salzburgresearch.at/apps/rdf-gravity/download.html} anzeigen lassen. Die Dateien matlab1.txt und matlab2.txt können als Matrizen in Matlab importiert werden und graphisch geplottet werden. Sämtliche andere Dateien dienen der Veranschaulichung und sind auf kein konkretes Programm hin optimiert worden.
+%\clearpage
+\section{Analyse des erstellten Korpus}
+\label{sec:evaluation}
+
+Die Analyse des erstellten Korpus erfolgt unter verschiedenen Gesichtspunkten. So wurde zunächst Wert auf eine Gesamtübersicht der ermittelten Ergebnisse gelegt und im Weiteren auffällige Bestandteile der Übersicht näher betrachtet.
+\subsection{Gesamteindruck}
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.9\textwidth]{images/linearkomplett.png}
+   \caption[Alle Revisionen linear]{Lineare Darstellung aller Revisionen}
+   \label{fig:nag_conf}
+\end{figure}
+Die vorige Abbildung zeigt die Gesamtübersicht der Revisionen beginnend mit dem Startdatum der Erstellung der Seite Olympische Spiele 2012. In der Grafik bezeichnen wir diesen Tag als Tag 0. Die darauffolgenden Tage bis zur letzten aufgezeichneten Änderung des Korpus sind aufsteigend nummeriert. Auffällig bei der Analyse des Ergebnisses ist der sprunghafte Anstieg der Revisionen in dem Abschnitt des Jahres 2012, in dem die Olympischen Spiele stattfanden. Eine Steigerung auf nahezu 800 Revisionen ist hier zu verzeichnen.
+\clearpage
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.9\textwidth]{images/linearlogkomplett.png}
+   \caption[Alle Revisionen logarithmisch]{Logarithmische Darstellung aller Revisionen}
+   \label{fig:nag_conf}
+\end{figure}
+Diese Grafik zeigt die Auswertung zur Verdeutlichung der Unterschiede in einem logarithmischen Graphen. Es lässt sich gleiches beobachten, allerdings werden einige auffällige Häufungen von vielen Revisionen sichtbarer. Diese Revisionen lassen sich Ereignissen in dieser Zeit zuordnen, von denen im Weiteren noch die Rede sein wird.
+\clearpage
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.9\textwidth]{images/linearohne2012.png}
+   \caption[Revisionen ohne 2012]{Revisionen ohne das Jahr 2012}
+   \label{fig:nag_conf}
+\end{figure}
+Durch das Stattfinden der Olympiade in einem Zeitraum in 2012, fanden sich dort exorbitante Häufungen von Revisionen. In diesem Bild wurde das Jahr 2012 entfernt um einen Überblick auf die Jahre davor zu bekommen.
+\subsection{Events}
+Aus der Revisionsübersicht ließen sich einige besonders auffällige Peaks, an denen besonders viele Revisionen erstellt wurden herausgreifen und einordnen. Diese sollen hier in ihrem zeitlichen Zusammenhang dargestellt werden:
+\clearpage
+\subsubsection{Auslosungsverfahren}
+Das Auslosungsverfahren für den Austragungsort der Olympischen Spiele 2012 startete im Jahre 2004. Dies stellt den ersten Peak des Revisionsgraphen dar:
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.9\textwidth]{images/kandidaten2004.png}
+   \caption[Kandidaten]{Vorstellung der Kandidaten}
+   \label{fig:nag_conf}
+\end{figure}
+\\Deutlich lässt sich hier ein Anwachsen der Revisionen auf 40 erkennen.
+\clearpage
+\subsubsection{Bekanntgabe des Austragungsortes}
+Bei Bekanntgabe des Ausstragungsortes am 6.Juli 2005 ließ sich ein deutlich sichtbarer Anstieg der Revisionen auf den Wert 24 erkennen:
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.8\textwidth]{images/entscheidung06-07-2005.png}
+   \caption[Austragungsort]{Revisionen bei Verkündung des Austragungsortes}
+   \label{fig:nag_conf}
+\end{figure}
+\subsubsection{Olympia in Peking 2008}
+Interessante Parallelen fanden sich zudem während der Olympischen Spiele in Peking 2008. Der im folgenden dargestellte Revisionsgraph zeigt auch hier eine erhöhte Editierfrequenz an, jedoch in einem weitaus geringeren Maße .
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.75\textwidth]{images/beijing2008.png}
+   \caption[Olympia 2008]{Revisionen während Olympia 2008}
+   \label{fig:nag_conf}
+\end{figure}
+\clearpage
+\subsubsection{Die Jahre 2010/2011}
+Im nächsten Abschnitt ist der Verlauf der Revisionen in den Jahren 2010 und 2011 dargestellt. Auch hier lässt sich eine erhöhte Editieraktivität in Anbetracht der Vorbereitungen zu den Olympischen Spielen feststellen.
+\begin{figure}[htb]
+  \centering
+     \includegraphics*[width=0.9\textwidth]{images/2010-2011.png}
+   \caption[2010-2011]{Revisionen in den Jahren 2010 und 2011}
+   \label{fig:nag_conf}
+\end{figure}
+
+\section{Kontrolle des RDF-Exports}
+Die resultierenden Triples bieten leider keine exakte Repräsentation aller Zusammenhänge, wie sie
+während der Olympiade 2012 vorherrschten, aber dennoch eine gute Repräsentation der Zusammenhänge in der Wikipedia zu dem Thema, was letztendlich auch der Fokus der Aufgabe war.
+Wie bereits im Lösungsweg angesprochen sorgte die Sportart Beachvolleyball für Probleme da es offiziell kein Olympisches Großevent ist, sondern nur eine Form des Volleyballs.
+Keiner der Beachvolleyballer in der Wikipedia wird jedoch mit ''Volleyball'' in Verbindung gebracht, sodass eine Auswertung in diesem Fall nicht möglich war.
+
+Artikel Stubs sorgen außerdem dafür, das nicht garantiert werden kann, das die Sportler-zu-Nation Relation immer korrekt ermittelt wird.
+Basierend auf Stichproben scheinen sie allerdings überwiegend korrekt zu sein.\\
+\clearpage
+Beispielhaft soll dies an der Nation American Samoa deutlich gemacht werden:\\
+Die folgenden in RDF ermittelten Daten
+\begingroup
+    %\fontsize{7pt}{12pt}\selectfont
+
+\begin{lstlisting}<rdf:Description rdf:about="http://en.wikipedia.org/wiki/American_Samoa_at_the_2012_Summer_Olympics">
+<tt:isrepresented rdf:parseType="Collection">
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Anthony_Liu_(judoka)">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Ching_Maou_Wei">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Elama_Fa’atonu">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Megan_Fonteno">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Nathaniel_Tuamoheloa">
+</rdf:Description>
+</tt:isrepresented>
+<tt:participates rdf:parseType="Collection">
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Athletics_at_the_2012_Summer_Olympics">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Judo_at_the_2012_Summer_Olympics">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Swimming_at_the_2012_Summer_Olympics">
+</rdf:Description>
+<rdf:Description rdf:about="http://en.wikipedia.org/wiki/Wrestling_at_the_2012_Summer_Olympics">
+</rdf:Description>
+</tt:participates>
+</rdf:Description>\end{lstlisting}
+stimmen mit den Daten die auf der Seite\\ \href{http://en.wikipedia.org/wiki/American_Samoa_at_the_2012_Summer_Olympics}{http://en.wikipedia.org/wiki/American\_Samoa\_at\_the\_2012\_Summer\_Olympics}\\ zu sehen sind überein
+\paragraph{}
+Ein Fehler der bei wiederholten Stichproben zu finden ist beruht auf der Inkonsistenz der Wikipedia Daten.
+In allen Kategorien, Sportlerseiten und Links wird  Großbritannien  als '' Great Britain '' bezeichnet.
+Vereinzelte Sportler stammen jedoch aus dem ''United Kingdom'', das als solches aber nicht an der Olympiade teilgenommen hat,
+aber auch kein einfaches Synonym ist, das durch Überprüfung der Redirect-Informationen abgefangen werden könnte.
+Letztendlich führt es dazu das er Afghanistan zugeordnet wird da dies die erste Seite ist von der er zumindest einen Backlink besitzt. Dies ist eindeutig ein Fehler, aber ohne sein Land als Sonderfall zu berücksichtigen wohl nicht abzufangen.
+
+\section{Zusammenfassung}
+\label{sec:zusammenfassung}
+Zusammenfassend lässt sich sagen das sich zeigen ließ, wie ein sportliches Großereignis wie die Olympischen Spiele , im Vorfeld, aber insbesondere während der Spiele, einen deutlichen Fußabdruck in der Wikipedia hinterlässt. Die Aktivitätsspitzen scheinen dabei nicht willkürlich zu sein, sondern liegen meist zeitnah an einem oder mehreren  direkt damit in Verbindung stehenden Ereignis(sen).
+\paragraph{}
+Die Daten in der deutschsprachigen Wikipedia beschränkten sich leider größtenteils auf deutsche Athleten, weswegen wir die englische Wikipedia nutzten um unseren Corpus zu erstellen. Zahlreiche Stubs und das Fehlen einer einheitlichen Struktur, trotz der gegebenen Templates, führte leider zu einem komplexeren (und damit weniger allgemeinen) Entscheidungsbaum, welcher zur Kategorisierung der Sportler/Nationen/Sportarten/Medaillen sowie ihrer Relationen, notwendig war.
+Der resultierende RDF ist dafür, gemessen an den Informationen in der Wikipedia, sehr akkurat.
+\printbibliography
+
+
+
+\end{document}
